@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>French Flashcard Game v1.2.2</title>
+<title>French Flashcard Game v1.21.1 (Peek Right Shift)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
 <style>
 body {
@@ -47,25 +47,22 @@ button {
   transition: background 0.3s, transform 0.2s;
 }
 button:hover { background: #005fa3; transform: scale(1.05); }
-#display-word { font-size: 38px; font-weight: 700; margin-bottom: 20px; }
-#answer {
-  font-size:20px; text-align:center; border-radius:8px; border:2px solid #ccc; padding:8px;
-  transition: background 0.3s, border-color 0.3s;
-}
-#answer.correct { background:#e6ffe6; border-color:#2ecc71; color:black; }
-#answer.incorrect { background:#ffe5e5; border-color:#e74c3c; color:black; }
-#answer.hint { background:#eee; color:black; }
+#display-word { font-size: 38px; font-weight: 700; margin-bottom: 20px; transition: all 0.3s ease; }
+.version { position: fixed; bottom: 10px; right: 15px; font-size: 14px; color: #666; }
 #score-card { text-align: center; }
 #score-card button { margin-top: 10px; }
 .missed { color: #666; font-size: 14px; margin-top: 5px; }
+.submenu { display: flex; flex-direction: column; }
+input { font-size: 20px; text-align:center; border-radius:8px; border:2px solid #ccc; transition: background 0.3s, border-color 0.3s; padding:8px; }
+input.correct { background:#e6ffe6; border-color:#2ecc71; }
+input.incorrect { background:#ffe5e5; border-color:#e74c3c; }
 .fade-out { opacity:0; transform: scale(0.95);}
-.version { position: fixed; bottom: 10px; right: 15px; font-size: 14px; color: #666; }
 </style>
 </head>
 <body>
 <h1>French Flashcard Game</h1>
 
-<!-- Menu -->
+<!-- Main Menu -->
 <div class="card" id="menu">
   <p>Select practice mode:</p>
   <button onclick="showSubMenu('fr-en')">French → English</button>
@@ -81,7 +78,7 @@ button:hover { background: #005fa3; transform: scale(1.05); }
   <button onclick="goBackToMain()">Back</button>
 </div>
 
-<!-- Game -->
+<!-- Game Card -->
 <div class="card" id="game" style="display:none;">
   <div id="display-word"></div>
   <div id="example" style="font-size:18px;margin-top:10px;"></div>
@@ -98,7 +95,7 @@ button:hover { background: #005fa3; transform: scale(1.05); }
   <button onclick="startGame(currentMode,currentCategory)">Play Again</button>
 </div>
 
-<div class="version">v1.2.2</div>
+<div class="version">v1.21.1 (Right Shift Peek)</div>
 
 <script>
 // Word Lists
@@ -132,42 +129,43 @@ function startGame(mode,category){
 function nextWord(){
   if(remainingCards.length===0){finishGame(); return;}
   const answerBox=document.getElementById("answer");
-  answerBox.value=""; answerBox.className=""; answerBox.style.background="#fff"; answerBox.focus();
+  answerBox.value=""; answerBox.className=""; answerBox.focus();
   const idx=Math.floor(Math.random()*remainingCards.length); currentCard=remainingCards.splice(idx,1)[0];
   askInFrench = currentMode==='fr-en'?true:currentMode==='en-fr'?false:Math.random()<0.5;
   document.getElementById("display-word").textContent = askInFrench?currentCard.fr:currentCard.en;
   document.getElementById("example").textContent = currentCard.sentence||"";
 }
 
-// Input handling
-document.getElementById("answer").addEventListener("keydown",function(e){
-  if(e.key==="Enter"){
-    const answerBox=document.getElementById("answer");
-    let val=answerBox.value.trim();
-    let correct = askInFrench?currentCard.en:currentCard.fr;
+// Input Handling
+document.getElementById("answer").addEventListener("input",function(){
+  const answerBox=document.getElementById("answer");
+  let correct = askInFrench?currentCard.en:currentCard.fr; 
+  let val=answerBox.value;
+  if(val.toLowerCase()===correct.toLowerCase()){answerBox.className="correct"; score++; setTimeout(nextWord,300);}
+  else if(val.length>=correct.length){answerBox.className="incorrect"; missedCount++;}
+});
 
-    if(val==="?"){
-      answerBox.className="hint";
-      answerBox.value=correct;
-      answerBox.setSelectionRange(0,0); // start typing at beginning
-      return;
-    }
-
-    if(val.toLowerCase()===correct.toLowerCase()){
-      answerBox.className="correct";
-      score++;
-      setTimeout(nextWord,300);
-    } else {
-      answerBox.className="incorrect";
-      missedCount++;
-    }
+// Right Shift Peek
+document.addEventListener("keydown", function(e){
+  if(e.code==="ShiftRight"){
+    document.getElementById("display-word").textContent = askInFrench?currentCard.en:currentCard.fr;
+    document.getElementById("display-word").style.opacity=0; 
+    setTimeout(()=>{document.getElementById("display-word").style.opacity=1;},50);
   }
 });
+document.addEventListener("keyup", function(e){
+  if(e.code==="ShiftRight"){
+    document.getElementById("display-word").textContent = askInFrench?currentCard.fr:currentCard.en;
+    document.getElementById("display-word").style.opacity=0; 
+    setTimeout(()=>{document.getElementById("display-word").style.opacity=1;},50);
+  }
+});
+
+// Finish
 function finishGame(){
   document.getElementById("game").classList.add("fade-out"); setTimeout(()=>{
     document.getElementById("game").style.display="none"; document.getElementById("score-card").style.display="block"; document.getElementById("game").classList.remove("fade-out");
-    document.getElementById("score").textContent=`Score: ${score}`;
-    document.getElementById("missed").textContent=`Missed: ${missedCount}`;
+    document.getElementById("score").textContent=`Score: ${score}`; document.getElementById("missed").textContent=`Missed: ${missedCount}`;
   },300);
 }
 </script>
