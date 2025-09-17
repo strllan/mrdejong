@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>French Flashcard Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .menu, .game {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    button {
+      margin: 8px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #0077cc;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    input {
+      margin: 10px 0;
+      padding: 8px;
+      font-size: 16px;
+      width: 80%;
+    }
+    .result {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>French Flashcard Game</h1>
+
+  <!-- Menu -->
+  <div class="menu" id="menu">
+    <p>Select practice mode:</p>
+    <button onclick="startGame('fr-en')">French → English</button>
+    <button onclick="startGame('en-fr')">English → French</button>
+    <button onclick="startGame('mixed')">Mixed Practice</button>
+  </div>
+
+  <!-- Game -->
+  <div class="game" id="game" style="display:none;">
+    <p id="question"></p>
+    <p><em id="example"></em></p>
+    <input type="text" id="answer" placeholder="Type your answer here">
+    <br>
+    <button onclick="checkAnswer()">Try</button>
+    <div class="result" id="result"></div>
+    <br>
+    <button onclick="nextWord()">Next</button>
+    <br><br>
+    <button onclick="goBack()">Back to Menu</button>
+  </div>
+
+  <script>
+    // ---- Add your flashcards here ----
+    // Each entry: {fr: "French word", en: "English word", sentence: "Example sentence in French"}
+    const flashcards = [
+      { fr: "chien", en: "dog", sentence: "Le chien dort dans le jardin." },
+      { fr: "maison", en: "house", sentence: "J'habite dans une grande maison." },
+      { fr: "pomme", en: "apple", sentence: "Je mange une pomme rouge." },
+      { fr: "livre", en: "book", sentence: "Il lit un livre intéressant." }
+    ];
+
+    let mode = "";
+    let currentCard = null;
+    let askInFrench = true;
+
+    function startGame(selectedMode) {
+      mode = selectedMode;
+      document.getElementById("menu").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      nextWord();
+    }
+
+    function goBack() {
+      document.getElementById("menu").style.display = "block";
+      document.getElementById("game").style.display = "none";
+      document.getElementById("result").textContent = "";
+      document.getElementById("answer").value = "";
+    }
+
+    function nextWord() {
+      document.getElementById("result").textContent = "";
+      document.getElementById("answer").value = "";
+      currentCard = flashcards[Math.floor(Math.random() * flashcards.length)];
+
+      // Decide whether to ask in French or English
+      if (mode === "fr-en") {
+        askInFrench = true;
+      } else if (mode === "en-fr") {
+        askInFrench = false;
+      } else if (mode === "mixed") {
+        askInFrench = Math.random() < 0.5;
+      }
+
+      if (askInFrench) {
+        document.getElementById("question").textContent = "Translate to English: " + currentCard.fr;
+        document.getElementById("example").textContent = currentCard.sentence;
+      } else {
+        document.getElementById("question").textContent = "Translate to French: " + currentCard.en;
+        document.getElementById("example").textContent = currentCard.sentence;
+      }
+    }
+
+    function checkAnswer() {
+      const userAnswer = document.getElementById("answer").value.trim().toLowerCase();
+      let correct = askInFrench ? currentCard.en.toLowerCase() : currentCard.fr.toLowerCase();
+
+      if (userAnswer === correct) {
+        document.getElementById("result").textContent = "✅ Correct!";
+        document.getElementById("result").style.color = "green";
+      } else {
+        document.getElementById("result").textContent = "❌ Incorrect. Correct answer: " + correct;
+        document.getElementById("result").style.color = "red";
+      }
+    }
+  </script>
+</body>
+</html>
