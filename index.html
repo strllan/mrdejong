@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>French Flashcard Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Montserrat', sans-serif;
       background: linear-gradient(135deg, #f8f9fa, #e9ecef);
       display: flex;
       flex-direction: column;
@@ -29,7 +30,7 @@
       width: 100%;
       margin-bottom: 20px;
       opacity: 1;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.4s ease;
     }
     button {
       margin: 8px;
@@ -53,7 +54,7 @@
     input {
       width: 100%;
       padding: 10px;
-      font-size: 18px;
+      font-size: 20px;
       border-radius: 8px;
       border: 2px solid #ccc;
       transition: background 0.3s, border-color 0.3s;
@@ -72,7 +73,7 @@
       top: 50%;
       left: 10px;
       transform: translateY(-50%);
-      font-size: 18px;
+      font-size: 20px;
       color: rgba(0,0,0,0.2);
       pointer-events: none;
       transition: opacity 0.2s ease;
@@ -86,6 +87,22 @@
       right: 15px;
       font-size: 14px;
       color: #666;
+    }
+    #display-word {
+      font-size: 50px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    #score-card {
+      text-align: center;
+    }
+    #score-card button {
+      margin-top: 10px;
+    }
+    .missed {
+      color: #666;
+      font-size: 14px;
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -102,7 +119,7 @@
 
   <!-- Game -->
   <div class="card" id="game" style="display:none;">
-    <p id="question"></p>
+    <div id="display-word"></div>
     <p><em id="example"></em></p>
     <div class="input-container">
       <input type="text" id="answer" placeholder="Type your answer here">
@@ -111,18 +128,16 @@
     <button onclick="finishGame()">Finish</button>
   </div>
 
-  <!-- Summary -->
-  <div class="card" id="summary" style="display:none;">
-    <h2>Results</h2>
-    <div id="summary-list"></div>
-    <div class="score" id="score"></div>
-    <div style="text-align:center;">
-      <button onclick="goBack()">Back to Menu</button>
-    </div>
+  <!-- Score -->
+  <div class="card" id="score-card" style="display:none;">
+    <h2>Score</h2>
+    <div id="score"></div>
+    <div class="missed" id="missed"></div>
+    <button onclick="goBack()">Back to Menu</button>
+    <button onclick="startGame(currentMode)">Play Again</button>
   </div>
 
-  <!-- Version -->
-  <div class="version">v1.0</div>
+  <div class="version">v1.1</div>
 
   <script>
     const flashcards = [
@@ -136,27 +151,29 @@
       { fr: "lune", en: "moon", sentence: "La lune est pleine ce soir." },
       { fr: "pain", en: "bread", sentence: "Je vais acheter du pain." },
       { fr: "eau", en: "water", sentence: "Je bois de l'eau fraîche." }
-      // Add more up to 100 words as needed
+      // Add more up to 100+ words
     ];
 
-    let mode = "";
+    let currentMode = "";
     let currentCard = null;
     let askInFrench = true;
-    let history = [];
+    let score = 0;
+    let missedCount = 0;
     let awaitingRetry = false;
 
-    function startGame(selectedMode) {
-      mode = selectedMode;
-      history = [];
+    function startGame(mode) {
+      currentMode = mode;
+      score = 0;
+      missedCount = 0;
       document.getElementById("menu").style.display = "none";
-      document.getElementById("summary").style.display = "none";
+      document.getElementById("score-card").style.display = "none";
       document.getElementById("game").style.display = "block";
       nextWord();
     }
 
     function goBack() {
       document.getElementById("menu").style.display = "block";
-      document.getElementById("summary").style.display = "none";
+      document.getElementById("score-card").style.display = "none";
       document.getElementById("game").style.display = "none";
     }
 
@@ -166,7 +183,7 @@
       setTimeout(() => {
         callback();
         card.classList.remove("fade-out");
-      }, 400);
+      }, 300);
     }
 
     function nextWord() {
@@ -183,19 +200,12 @@
 
       currentCard = flashcards[Math.floor(Math.random() * flashcards.length)];
 
-      if (mode === "fr-en") {
-        askInFrench = true;
-      } else if (mode === "en-fr") {
-        askInFrench = false;
-      } else {
-        askInFrench = Math.random() < 0.5;
-      }
+      if (currentMode === "fr-en") askInFrench = true;
+      else if (currentMode === "en-fr") askInFrench = false;
+      else askInFrench = Math.random() < 0.5;
 
-      if (askInFrench) {
-        document.getElementById("question").textContent = "Translate to English: " + currentCard.fr;
-      } else {
-        document.getElementById("question").textContent = "Translate to French: " + currentCard.en;
-      }
+      const displayWord = askInFrench ? currentCard.fr : currentCard.en;
+      document.getElementById("display-word").textContent = displayWord;
       document.getElementById("example").textContent = currentCard.sentence;
     }
 
@@ -208,71 +218,43 @@
 
       if (!awaitingRetry) {
         if (userAnswer === correct) {
+          score++;
           answerBox.className = "correct";
-          history.push({
-            question: askInFrench ? currentCard.fr : currentCard.en,
-            expected: correct,
-            user: userAnswer,
-            example: currentCard.sentence,
-            correct: true
-          });
-          setTimeout(() => fadeCard(nextWord), 600);
+          setTimeout(() => fadeCard(nextWord), 500);
         } else {
-          // Clear input and set watermark
+          missedCount++;
+          if (userAnswer === "?") {
+            watermark.textContent = correct;
+            watermark.style.color = "#888";
+          } else {
+            watermark.textContent = correct;
+            watermark.style.color = "rgba(0,0,0,0.2)";
+          }
           answerBox.value = "";
           answerBox.placeholder = "";
-          watermark.textContent = correct;
           answerBox.className = "incorrect";
           awaitingRetry = true;
-          history.push({
-            question: askInFrench ? currentCard.fr : currentCard.en,
-            expected: correct,
-            user: userAnswer || "(blank)",
-            example: currentCard.sentence,
-            correct: false
-          });
         }
       } else {
         if (userAnswer === correct) {
           answerBox.className = "correct";
           watermark.style.opacity = 0;
-          setTimeout(() => fadeCard(nextWord), 600);
+          setTimeout(() => fadeCard(nextWord), 500);
         }
       }
     }
 
     function finishGame() {
       document.getElementById("game").style.display = "none";
-      document.getElementById("summary").style.display = "block";
-
-      let summaryList = document.getElementById("summary-list");
-      summaryList.innerHTML = "";
-
-      let correctCount = 0;
-
-      history.forEach((item, i) => {
-        if (item.correct) correctCount++;
-        let div = document.createElement("div");
-        div.className = "summary-item";
-        div.innerHTML = `
-          <strong>Q${i+1}:</strong> ${item.question} <br>
-          <em>Example:</em> ${item.example}<br>
-          Your answer: <span class="${item.correct ? 'correct' : 'incorrect'}">${item.user}</span><br>
-          Correct answer: <strong>${item.expected}</strong>
-        `;
-        summaryList.appendChild(div);
-      });
-
-      document.getElementById("score").textContent = 
-        `Score: ${correctCount} / ${history.length}`;
+      document.getElementById("score-card").style.display = "block";
+      document.getElementById("score").textContent = `${score} / ${score + missedCount}`;
+      document.getElementById("missed").textContent = `Missed: ${missedCount}`;
     }
 
     document.addEventListener("keydown", function(e) {
-      if (e.key === "Enter" && document.getElementById("game").style.display !== "none") {
-        handleAnswer();
-      } else if (e.key.length === 1 && document.getElementById("game").style.display !== "none") {
-        // Remove watermark as user types
-        document.getElementById("watermark").style.opacity = 0;
+      if (document.getElementById("game").style.display !== "none") {
+        if (e.key === "Enter") handleAnswer();
+        else if (e.key.length === 1) document.getElementById("watermark").style.opacity = 0;
       }
     });
   </script>
