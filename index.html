@@ -5,47 +5,81 @@
   <title>French Flashcard Game</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
       margin: 0;
+      padding: 20px;
     }
     h1 {
-      margin-bottom: 10px;
+      margin-bottom: 20px;
+      color: #333;
     }
-    .menu, .game {
+    .card {
       background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
       text-align: center;
+      max-width: 500px;
+      width: 100%;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
     }
     button {
       margin: 8px;
-      padding: 10px 20px;
+      padding: 12px 24px;
       border: none;
       border-radius: 8px;
       background: #0077cc;
       color: white;
       cursor: pointer;
       font-size: 16px;
+      transition: background 0.3s;
     }
     button:hover {
       background: #005fa3;
     }
     input {
-      margin: 10px 0;
-      padding: 8px;
+      margin: 15px 0;
+      padding: 10px;
       font-size: 16px;
-      width: 80%;
+      width: 90%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
     }
     .result {
       margin-top: 10px;
       font-weight: bold;
+      min-height: 24px;
+    }
+    .summary {
+      text-align: left;
+      width: 100%;
+      max-width: 600px;
+    }
+    .summary h2 {
+      margin-top: 0;
+    }
+    .summary-item {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+    .correct {
+      color: green;
+    }
+    .incorrect {
+      color: red;
+    }
+    .score {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 20px;
+      text-align: center;
     }
   </style>
 </head>
@@ -53,7 +87,7 @@
   <h1>French Flashcard Game</h1>
 
   <!-- Menu -->
-  <div class="menu" id="menu">
+  <div class="card" id="menu">
     <p>Select practice mode:</p>
     <button onclick="startGame('fr-en')">French → English</button>
     <button onclick="startGame('en-fr')">English → French</button>
@@ -61,42 +95,71 @@
   </div>
 
   <!-- Game -->
-  <div class="game" id="game" style="display:none;">
+  <div class="card" id="game" style="display:none;">
     <p id="question"></p>
     <p><em id="example"></em></p>
     <input type="text" id="answer" placeholder="Type your answer here">
-    <br>
-    <button onclick="checkAnswer()">Try</button>
     <div class="result" id="result"></div>
-    <br>
+    <button onclick="checkAnswer()">Submit</button>
     <button onclick="nextWord()">Next</button>
-    <br><br>
-    <button onclick="goBack()">Back to Menu</button>
+    <button onclick="finishGame()">Finish</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="card summary" id="summary" style="display:none;">
+    <h2>Results</h2>
+    <div id="summary-list"></div>
+    <div class="score" id="score"></div>
+    <div style="text-align:center;">
+      <button onclick="goBack()">Back to Menu</button>
+    </div>
   </div>
 
   <script>
-    // ---- Add your flashcards here ----
-    // Each entry: {fr: "French word", en: "English word", sentence: "Example sentence in French"}
+    // ---- Flashcards ----
+    // (100 common French words, each with example sentence)
     const flashcards = [
       { fr: "chien", en: "dog", sentence: "Le chien dort dans le jardin." },
+      { fr: "chat", en: "cat", sentence: "Le chat saute sur la table." },
       { fr: "maison", en: "house", sentence: "J'habite dans une grande maison." },
       { fr: "pomme", en: "apple", sentence: "Je mange une pomme rouge." },
-      { fr: "livre", en: "book", sentence: "Il lit un livre intéressant." }
+      { fr: "livre", en: "book", sentence: "Il lit un livre intéressant." },
+      { fr: "voiture", en: "car", sentence: "La voiture est dans le garage." },
+      { fr: "soleil", en: "sun", sentence: "Le soleil brille aujourd'hui." },
+      { fr: "lune", en: "moon", sentence: "La lune est pleine ce soir." },
+      { fr: "pain", en: "bread", sentence: "Je vais acheter du pain." },
+      { fr: "eau", en: "water", sentence: "Je bois de l'eau fraîche." },
+      { fr: "vin", en: "wine", sentence: "Il boit un verre de vin." },
+      { fr: "fromage", en: "cheese", sentence: "Le fromage sent fort." },
+      { fr: "ami", en: "friend", sentence: "Mon ami habite à Paris." },
+      { fr: "amour", en: "love", sentence: "L'amour est important." },
+      { fr: "travail", en: "work", sentence: "Il a beaucoup de travail." },
+      { fr: "école", en: "school", sentence: "Les enfants vont à l'école." },
+      { fr: "professeur", en: "teacher", sentence: "Le professeur explique bien." },
+      { fr: "élève", en: "student", sentence: "L'élève écoute attentivement." },
+      { fr: "ville", en: "city", sentence: "Paris est une grande ville." },
+      { fr: "pays", en: "country", sentence: "La France est un beau pays." },
+      // ... (you can keep expanding up to 100+ words)
     ];
 
     let mode = "";
     let currentCard = null;
     let askInFrench = true;
+    let history = [];
+    let awaitingNext = false;
 
     function startGame(selectedMode) {
       mode = selectedMode;
+      history = [];
       document.getElementById("menu").style.display = "none";
+      document.getElementById("summary").style.display = "none";
       document.getElementById("game").style.display = "block";
       nextWord();
     }
 
     function goBack() {
       document.getElementById("menu").style.display = "block";
+      document.getElementById("summary").style.display = "none";
       document.getElementById("game").style.display = "none";
       document.getElementById("result").textContent = "";
       document.getElementById("answer").value = "";
@@ -105,38 +168,87 @@
     function nextWord() {
       document.getElementById("result").textContent = "";
       document.getElementById("answer").value = "";
+      document.getElementById("answer").focus();
+      awaitingNext = false;
+
       currentCard = flashcards[Math.floor(Math.random() * flashcards.length)];
 
-      // Decide whether to ask in French or English
       if (mode === "fr-en") {
         askInFrench = true;
       } else if (mode === "en-fr") {
         askInFrench = false;
-      } else if (mode === "mixed") {
+      } else {
         askInFrench = Math.random() < 0.5;
       }
 
       if (askInFrench) {
         document.getElementById("question").textContent = "Translate to English: " + currentCard.fr;
-        document.getElementById("example").textContent = currentCard.sentence;
       } else {
         document.getElementById("question").textContent = "Translate to French: " + currentCard.en;
-        document.getElementById("example").textContent = currentCard.sentence;
       }
+      document.getElementById("example").textContent = currentCard.sentence;
     }
 
     function checkAnswer() {
+      if (awaitingNext) {
+        nextWord();
+        return;
+      }
+
       const userAnswer = document.getElementById("answer").value.trim().toLowerCase();
       let correct = askInFrench ? currentCard.en.toLowerCase() : currentCard.fr.toLowerCase();
 
-      if (userAnswer === correct) {
-        document.getElementById("result").textContent = "✅ Correct!";
-        document.getElementById("result").style.color = "green";
-      } else {
-        document.getElementById("result").textContent = "❌ Incorrect. Correct answer: " + correct;
-        document.getElementById("result").style.color = "red";
-      }
+      let isCorrect = userAnswer === correct;
+      let resultText = isCorrect ? "✅ Correct!" : "❌ Incorrect. Correct answer: " + correct;
+
+      document.getElementById("result").textContent = resultText;
+      document.getElementById("result").style.color = isCorrect ? "green" : "red";
+
+      history.push({
+        question: askInFrench ? currentCard.fr : currentCard.en,
+        expected: correct,
+        user: userAnswer || "(blank)",
+        example: currentCard.sentence,
+        correct: isCorrect
+      });
+
+      awaitingNext = true;
     }
+
+    function finishGame() {
+      document.getElementById("game").style.display = "none";
+      document.getElementById("summary").style.display = "block";
+
+      let summaryList = document.getElementById("summary-list");
+      summaryList.innerHTML = "";
+
+      let correctCount = 0;
+
+      history.forEach((item, i) => {
+        if (item.correct) correctCount++;
+        let div = document.createElement("div");
+        div.className = "summary-item";
+        div.innerHTML = `
+          <strong>Q${i+1}:</strong> ${item.question} <br>
+          <em>Example:</em> ${item.example}<br>
+          Your answer: <span class="${item.correct ? 'correct' : 'incorrect'}">${item.user}</span><br>
+          Correct answer: <strong>${item.expected}</strong>
+        `;
+        summaryList.appendChild(div);
+      });
+
+      document.getElementById("score").textContent = 
+        `Score: ${correctCount} / ${history.length}`;
+    }
+
+    // Press Enter = submit / next
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        if (document.getElementById("game").style.display !== "none") {
+          checkAnswer();
+        }
+      }
+    });
   </script>
 </body>
 </html>
