@@ -224,4 +224,18 @@
       overlay.textContent = correct;
       overlay.style.opacity = 0.2;
 
-      if(userInput.toLower
+      if(userInput.toLowerCase()===correct.toLowerCase()){
+        score++;
+        setTimeout(nextWord, 300);
+      }
+    });
+
+    function finishGame(){
+      document.getElementById("game").style.display = "none";
+      document.getElementById("score-card").style.display = "block";
+      document.getElementById("score").textContent = `Score: ${score}`;
+      document.getElementById("missed").textContent = `Missed: ${missedCount}`;
+    }
+  </script>
+</body>
+</html>
