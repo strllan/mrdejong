@@ -13,6 +13,7 @@
       padding: 20px;
       margin: 0;
       min-height: 100vh;
+      position: relative;
     }
     h1 {
       margin-bottom: 20px;
@@ -74,9 +75,17 @@
       font-size: 18px;
       color: rgba(0,0,0,0.2);
       pointer-events: none;
+      transition: opacity 0.2s ease;
     }
     .fade-out {
       opacity: 0;
+    }
+    .version {
+      position: fixed;
+      bottom: 10px;
+      right: 15px;
+      font-size: 14px;
+      color: #666;
     }
   </style>
 </head>
@@ -112,8 +121,10 @@
     </div>
   </div>
 
+  <!-- Version -->
+  <div class="version">v1.0</div>
+
   <script>
-    // ---- Flashcards ----
     const flashcards = [
       { fr: "chien", en: "dog", sentence: "Le chien dort dans le jardin." },
       { fr: "chat", en: "cat", sentence: "Le chat saute sur la table." },
@@ -124,24 +135,15 @@
       { fr: "soleil", en: "sun", sentence: "Le soleil brille aujourd'hui." },
       { fr: "lune", en: "moon", sentence: "La lune est pleine ce soir." },
       { fr: "pain", en: "bread", sentence: "Je vais acheter du pain." },
-      { fr: "eau", en: "water", sentence: "Je bois de l'eau fraîche." },
-      { fr: "vin", en: "wine", sentence: "Il boit un verre de vin." },
-      { fr: "fromage", en: "cheese", sentence: "Le fromage sent fort." },
-      { fr: "ami", en: "friend", sentence: "Mon ami habite à Paris." },
-      { fr: "amour", en: "love", sentence: "L'amour est important." },
-      { fr: "travail", en: "work", sentence: "Il a beaucoup de travail." },
-      { fr: "école", en: "school", sentence: "Les enfants vont à l'école." },
-      { fr: "professeur", en: "teacher", sentence: "Le professeur explique bien." },
-      { fr: "élève", en: "student", sentence: "L'élève écoute attentivement." },
-      { fr: "ville", en: "city", sentence: "Paris est une grande ville." },
-      { fr: "pays", en: "country", sentence: "La France est un beau pays." }
-      // 👉 Add more to reach 100+
+      { fr: "eau", en: "water", sentence: "Je bois de l'eau fraîche." }
+      // Add more up to 100 words as needed
     ];
 
     let mode = "";
     let currentCard = null;
     let askInFrench = true;
     let history = [];
+    let awaitingRetry = false;
 
     function startGame(selectedMode) {
       mode = selectedMode;
@@ -173,8 +175,11 @@
 
       answerBox.value = "";
       answerBox.className = "";
+      answerBox.placeholder = "Type your answer here";
       watermark.textContent = "";
+      watermark.style.opacity = 1;
       answerBox.focus();
+      awaitingRetry = false;
 
       currentCard = flashcards[Math.floor(Math.random() * flashcards.length)];
 
@@ -201,26 +206,38 @@
       let userAnswer = answerBox.value.trim().toLowerCase();
       let correct = askInFrench ? currentCard.en.toLowerCase() : currentCard.fr.toLowerCase();
 
-      if (userAnswer === correct) {
-        answerBox.className = "correct";
-        history.push({
-          question: askInFrench ? currentCard.fr : currentCard.en,
-          expected: correct,
-          user: userAnswer,
-          example: currentCard.sentence,
-          correct: true
-        });
-        setTimeout(() => fadeCard(nextWord), 600);
+      if (!awaitingRetry) {
+        if (userAnswer === correct) {
+          answerBox.className = "correct";
+          history.push({
+            question: askInFrench ? currentCard.fr : currentCard.en,
+            expected: correct,
+            user: userAnswer,
+            example: currentCard.sentence,
+            correct: true
+          });
+          setTimeout(() => fadeCard(nextWord), 600);
+        } else {
+          // Clear input and set watermark
+          answerBox.value = "";
+          answerBox.placeholder = "";
+          watermark.textContent = correct;
+          answerBox.className = "incorrect";
+          awaitingRetry = true;
+          history.push({
+            question: askInFrench ? currentCard.fr : currentCard.en,
+            expected: correct,
+            user: userAnswer || "(blank)",
+            example: currentCard.sentence,
+            correct: false
+          });
+        }
       } else {
-        answerBox.className = "incorrect";
-        watermark.textContent = correct;
-        history.push({
-          question: askInFrench ? currentCard.fr : currentCard.en,
-          expected: correct,
-          user: userAnswer,
-          example: currentCard.sentence,
-          correct: false
-        });
+        if (userAnswer === correct) {
+          answerBox.className = "correct";
+          watermark.style.opacity = 0;
+          setTimeout(() => fadeCard(nextWord), 600);
+        }
       }
     }
 
@@ -250,10 +267,12 @@
         `Score: ${correctCount} / ${history.length}`;
     }
 
-    // Press Enter = check answer
     document.addEventListener("keydown", function(e) {
       if (e.key === "Enter" && document.getElementById("game").style.display !== "none") {
         handleAnswer();
+      } else if (e.key.length === 1 && document.getElementById("game").style.display !== "none") {
+        // Remove watermark as user types
+        document.getElementById("watermark").style.opacity = 0;
       }
     });
   </script>
