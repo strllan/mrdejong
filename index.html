@@ -47,16 +47,34 @@ button {
   transition: background 0.3s, transform 0.2s;
 }
 button:hover { background: #005fa3; transform: scale(1.05); }
-#display-word { font-size: 38px; font-weight: 700; margin-bottom: 20px; transition: all 0.3s ease; }
+#display-word { 
+  font-size: 38px; 
+  font-weight: 700; 
+  margin-bottom: 20px; 
+  transition: opacity 0.3s ease; 
+}
 .version { position: fixed; bottom: 10px; right: 15px; font-size: 14px; color: #666; }
 #score-card { text-align: center; }
 #score-card button { margin-top: 10px; }
-.missed { color: #666; font-size: 14px; margin-top: 5px; }
 .submenu { display: flex; flex-direction: column; }
-input { font-size: 20px; text-align:center; border-radius:8px; border:2px solid #ccc; transition: background 0.3s, border-color 0.3s; padding:8px; }
+input { 
+  font-size: 20px; 
+  text-align:center; 
+  border-radius:8px; 
+  border:2px solid #ccc; 
+  transition: background 0.3s, border-color 0.3s; 
+  padding:8px; 
+  margin-bottom: 15px;
+}
 input.correct { background:#e6ffe6; border-color:#2ecc71; }
 input.incorrect { background:#ffe5e5; border-color:#e74c3c; }
 .fade-out { opacity:0; transform: scale(0.95);}
+.hint { 
+  font-size: 14px; 
+  color: #666; 
+  margin-top: 10px; 
+  margin-bottom: 15px;
+}
 </style>
 </head>
 <body>
@@ -81,8 +99,8 @@ input.incorrect { background:#ffe5e5; border-color:#e74c3c; }
 <!-- Game Card -->
 <div class="card" id="game" style="display:none;">
   <div id="display-word"></div>
-  <div id="example" style="font-size:18px;margin-top:10px;"></div>
-  <input type="text" id="answer">
+  <input type="text" id="answer" placeholder="Type your answer">
+  <div class="hint">Hold Right Shift to peek translation</div>
   <button onclick="finishGame()">Finish</button>
 </div>
 
@@ -90,7 +108,6 @@ input.incorrect { background:#ffe5e5; border-color:#e74c3c; }
 <div class="card" id="score-card" style="display:none;">
   <h2>Score</h2>
   <div id="score"></div>
-  <div class="missed" id="missed"></div>
   <button onclick="goBackToMain()">Back to Menu</button>
   <button onclick="startGame(currentMode,currentCategory)">Play Again</button>
 </div>
@@ -110,62 +127,111 @@ const infinitives = [
 
 // State
 let currentMode="", currentCategory="", currentCard=null, askInFrench=true;
-let score=0, missedCount=0;
+let score=0;
 let remainingCards=[];
 
 // Menus
-function showSubMenu(mode){currentMode=mode; document.getElementById("menu").classList.add("fade-out"); setTimeout(()=>{document.getElementById("menu").style.display="none"; document.getElementById("submenu").style.display="block"; document.getElementById("menu").classList.remove("fade-out");},300);}
-function goBackToMain(){document.getElementById("submenu").style.display="none";document.getElementById("score-card").style.display="none";document.getElementById("menu").style.display="block";}
+function showSubMenu(mode){
+  currentMode=mode; 
+  document.getElementById("menu").classList.add("fade-out"); 
+  setTimeout(()=>{
+    document.getElementById("menu").style.display="none"; 
+    document.getElementById("submenu").style.display="block"; 
+    document.getElementById("menu").classList.remove("fade-out");
+  },300);
+}
+
+function goBackToMain(){
+  document.getElementById("submenu").style.display="none";
+  document.getElementById("score-card").style.display="none";
+  document.getElementById("menu").style.display="block";
+}
+
 function startGame(mode,category){
-  currentMode=mode; currentCategory=category; score=0; missedCount=0;
+  currentMode=mode; 
+  currentCategory=category; 
+  score=0;
   remainingCards = [...(category==='infinitives'?infinitives:subjects)];
-  document.getElementById("submenu").classList.add("fade-out"); setTimeout(()=>{
-    document.getElementById("submenu").style.display="none"; document.getElementById("game").style.display="block"; document.getElementById("submenu").classList.remove("fade-out");
+  document.getElementById("submenu").classList.add("fade-out"); 
+  setTimeout(()=>{
+    document.getElementById("submenu").style.display="none"; 
+    document.getElementById("game").style.display="block"; 
+    document.getElementById("submenu").classList.remove("fade-out");
     nextWord();
   },300);
 }
 
 // Next Word
 function nextWord(){
-  if(remainingCards.length===0){finishGame(); return;}
+  if(remainingCards.length===0){
+    finishGame(); 
+    return;
+  }
   const answerBox=document.getElementById("answer");
-  answerBox.value=""; answerBox.className=""; answerBox.focus();
-  const idx=Math.floor(Math.random()*remainingCards.length); currentCard=remainingCards.splice(idx,1)[0];
+  answerBox.value=""; 
+  answerBox.className=""; 
+  answerBox.focus();
+  const idx=Math.floor(Math.random()*remainingCards.length); 
+  currentCard=remainingCards.splice(idx,1)[0];
   askInFrench = currentMode==='fr-en'?true:currentMode==='en-fr'?false:Math.random()<0.5;
   document.getElementById("display-word").textContent = askInFrench?currentCard.fr:currentCard.en;
-  document.getElementById("example").textContent = currentCard.sentence||"";
 }
 
 // Input Handling
 document.getElementById("answer").addEventListener("input",function(){
   const answerBox=document.getElementById("answer");
   let correct = askInFrench?currentCard.en:currentCard.fr; 
-  let val=answerBox.value;
-  if(val.toLowerCase()===correct.toLowerCase()){answerBox.className="correct"; score++; setTimeout(nextWord,300);}
-  else if(val.length>=correct.length){answerBox.className="incorrect"; missedCount++;}
-});
-
-// Right Shift Peek
-document.addEventListener("keydown", function(e){
-  if(e.code==="ShiftRight"){
-    document.getElementById("display-word").textContent = askInFrench?currentCard.en:currentCard.fr;
-    document.getElementById("display-word").style.opacity=0; 
-    setTimeout(()=>{document.getElementById("display-word").style.opacity=1;},50);
+  let val=answerBox.value.trim();
+  
+  if(val === "") {
+    answerBox.className = "";
+    return;
+  }
+  
+  if(val.toLowerCase()===correct.toLowerCase()){
+    answerBox.className="correct"; 
+    score++; 
+    setTimeout(nextWord,300);
+  }
+  else if(val.length>=correct.length){
+    answerBox.className="incorrect";
   }
 });
+
+// Right Shift Peek - Improved with smooth animation
+let peekTimeout;
+document.addEventListener("keydown", function(e){
+  if(e.code==="ShiftRight" && currentCard){
+    clearTimeout(peekTimeout);
+    document.getElementById("display-word").style.opacity = 0;
+    
+    peekTimeout = setTimeout(() => {
+      document.getElementById("display-word").textContent = askInFrench?currentCard.en:currentCard.fr;
+      document.getElementById("display-word").style.opacity = 1;
+    }, 150);
+  }
+});
+
 document.addEventListener("keyup", function(e){
-  if(e.code==="ShiftRight"){
-    document.getElementById("display-word").textContent = askInFrench?currentCard.fr:currentCard.en;
-    document.getElementById("display-word").style.opacity=0; 
-    setTimeout(()=>{document.getElementById("display-word").style.opacity=1;},50);
+  if(e.code==="ShiftRight" && currentCard){
+    clearTimeout(peekTimeout);
+    document.getElementById("display-word").style.opacity = 0;
+    
+    peekTimeout = setTimeout(() => {
+      document.getElementById("display-word").textContent = askInFrench?currentCard.fr:currentCard.en;
+      document.getElementById("display-word").style.opacity = 1;
+    }, 150);
   }
 });
 
 // Finish
 function finishGame(){
-  document.getElementById("game").classList.add("fade-out"); setTimeout(()=>{
-    document.getElementById("game").style.display="none"; document.getElementById("score-card").style.display="block"; document.getElementById("game").classList.remove("fade-out");
-    document.getElementById("score").textContent=`Score: ${score}`; document.getElementById("missed").textContent=`Missed: ${missedCount}`;
+  document.getElementById("game").classList.add("fade-out"); 
+  setTimeout(()=>{
+    document.getElementById("game").style.display="none"; 
+    document.getElementById("score-card").style.display="block"; 
+    document.getElementById("game").classList.remove("fade-out");
+    document.getElementById("score").textContent=`${score} correct out of ${(currentCategory==='infinitives'?infinitives:subjects).length}`;
   },300);
 }
 </script>
