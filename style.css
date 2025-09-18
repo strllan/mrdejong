@@ -68,3 +68,9 @@ input.incorrect { background:#ffe5e5; border-color:#e74c3c; }
   margin-top: 10px; 
   margin-bottom: 15px;
 }
+
+button {
+  position: relative;
+  z-index: 9999;
+  pointer-events: auto;
+}
