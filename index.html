@@ -65,7 +65,7 @@ input.incorrect { background:#ffe5e5; border-color:#e74c3c; }
 <script>
 // State
 let currentMode="", currentCategory="", currentCard=null, askInFrench=true;
-let score=0;
+let score=0, answered=0;
 let remainingCards=[];
 
 // Menus
@@ -87,6 +87,7 @@ function startGame(mode,category){
   currentMode=mode;
   currentCategory=category;
   score=0;
+  answered=0; // ✅ reset
   remainingCards = [...(category==='infinitives'?infinitives:subjects)];
   document.getElementById("submenu").classList.add("fade-out");
   setTimeout(()=>{
@@ -119,9 +120,11 @@ document.getElementById("answer").addEventListener("input",function(){
   if(val.toLowerCase()===correct.toLowerCase()){
     answerBox.className="correct";
     score++;
+    answered++; // ✅ count attempt
     setTimeout(nextWord,300);
   } else if(val.length>=correct.length){
     answerBox.className="incorrect";
+    answered++; // ✅ count attempt even if wrong
   }
 });
 
@@ -155,7 +158,8 @@ function finishGame(){
     document.getElementById("game").style.display="none";
     document.getElementById("score-card").style.display="block";
     document.getElementById("game").classList.remove("fade-out");
-    document.getElementById("score").textContent = `${score} correct out of ${(currentCategory==='infinitives'?infinitives:subjects).length}`;
+    document.getElementById("score").textContent = 
+      `${score} correct out of ${answered} answered`; // ✅ new logic
   },300);
 }
 
