@@ -109,7 +109,7 @@ input.incorrect { background:#ffe5e5; border-color:#e74c3c; }
   <h2>Score</h2>
   <div id="score"></div>
   <button onclick="goBackToMain()">Back to Menu</button>
-  <button onclick="startGame(currentMode,currentCategory)">Play Again</button>
+  <button onclick="resetAndPlayAgain()">Play Again</button>
 </div>
 
 <div class="version">v1.21.1 (Right Shift Peek)</div>
@@ -233,6 +233,16 @@ function finishGame(){
     document.getElementById("game").classList.remove("fade-out");
     document.getElementById("score").textContent=`${score} correct out of ${(currentCategory==='infinitives'?infinitives:subjects).length}`;
   },300);
+}
+
+// Fixed Play Again function
+function resetAndPlayAgain() {
+  document.getElementById("score-card").classList.add("fade-out");
+  setTimeout(() => {
+    document.getElementById("score-card").style.display = "none";
+    document.getElementById("score-card").classList.remove("fade-out");
+    startGame(currentMode, currentCategory);
+  }, 300);
 }
 </script>
 </body>
